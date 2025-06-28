@@ -1,0 +1,102 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #000;
+    font-family: 'Press Start 2P', cursive;
+}
+
+canvas {
+    display: block;
+    background-color: #000;
+    box-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #fff, 0 0 40px #00ff00, 0 0 70px #00ff00, 0 0 80px #00ff00, 0 0 100px #00ff00, 0 0 150px #00ff00;
+}
+
+#startScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 10;
+}
+
+#startScreen h1 {
+  color: #00ffea;
+  font-size: 3rem;
+  margin-bottom: 2rem;
+  text-shadow: 0 0 20px #00ffea, 0 0 40px #00ffea;
+  font-family: 'Press Start 2P', cursive;
+}
+
+#startButton {
+  padding: 1rem 2.5rem;
+  font-size: 1.5rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #00ffea, #00ff00);
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 0 20px #00ffea, 0 0 40px #00ff00;
+  transition: background 0.3s, color 0.3s;
+  font-family: 'Press Start 2P', cursive;
+}
+#startButton:hover {
+  background: linear-gradient(90deg, #00ff00, #00ffea);
+  color: #fff;
+}
+
+#gameOverScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 10;
+}
+
+#gameOverScreen h1 {
+  color: #00ffea;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 20px #00ffea, 0 0 40px #00ffea;
+  font-family: 'Press Start 2P', cursive;
+}
+
+#finalScore {
+  color: #00ff00;
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  text-shadow: 0 0 10px #00ff00;
+  font-family: 'Press Start 2P', cursive;
+}
+
+#playAgainButton {
+  padding: 1rem 2.5rem;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 8px;
+  margin: 0.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+  background: linear-gradient(90deg, #ff00ff, #00ffea);
+  color: #000;
+  box-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffea;
+  font-family: 'Press Start 2P', cursive;
+}
+
+#playAgainButton:hover {
+  background: linear-gradient(90deg, #00ffea, #ff00ff);
+  color: #fff;
+}
