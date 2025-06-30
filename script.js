@@ -53,8 +53,8 @@ const ball = {
     y: canvas.height / 2,
     radius: 10,
     color: '#ff00ff',
-    dx: 3,
-    dy: -3
+    dx: 6,
+    dy: -6
 };
 
 const bricks = [];
@@ -250,8 +250,8 @@ function moveBall(speedMultiplier) {
             // Reset ball position but keep playing
             ball.x = canvas.width / 2;
             ball.y = canvas.height / 2;
-            ball.dx = 3;
-            ball.dy = -3;
+            ball.dx = 6;
+            ball.dy = -6;
             // Reset paddle position
             paddle.x = canvas.width / 2 - 50;
         }
