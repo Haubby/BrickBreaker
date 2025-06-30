@@ -100,10 +100,10 @@ class Particle {
         ctx.restore();
     }
 
-    update() {
-        this.x += this.dx;
-        this.y += this.dy;
-        this.alpha -= 0.02;
+    update(speedMultiplier) {
+        this.x += this.dx * speedMultiplier;
+        this.y += this.dy * speedMultiplier;
+        this.alpha -= 0.02 * speedMultiplier;
         this.draw();
     }
 }
@@ -168,9 +168,9 @@ function drawLives() {
 }
 
 // Move ball
-function moveBall() {
-    ball.x += ball.dx;
-    ball.y += ball.dy;
+function moveBall(speedMultiplier) {
+    ball.x += ball.dx * speedMultiplier;
+    ball.y += ball.dy * speedMultiplier;
 
     // Wall collision (left/right)
     if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
@@ -292,16 +292,23 @@ function resetGame() {
     // Hide game over screen and show canvas
     gameOverScreen.style.display = 'none';
     canvas.style.display = 'block';
-
-    // Restart game loop
-    update();
 }
 
+let lastTime = 0;
 // Game loop
-function update() {
-    if (gameOver || !gameStarted) { // Only update if game is started and not over
+function update(timestamp = 0) {
+    if (!lastTime) {
+        lastTime = timestamp;
+    }
+    const deltaTime = timestamp - lastTime;
+    lastTime = timestamp;
+
+    if (gameOver || !gameStarted) {
+        requestAnimationFrame(update);
         return;
     }
+
+    const speedMultiplier = deltaTime > 0 ? deltaTime / (1000 / 60) : 1;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -316,11 +323,11 @@ function update() {
         if (particle.alpha <= 0) {
             particles.splice(index, 1);
         } else {
-            particle.update();
+            particle.update(speedMultiplier);
         }
     });
 
-    moveBall();
+    moveBall(speedMultiplier);
 
     requestAnimationFrame(update);
 }
@@ -383,4 +390,4 @@ canvas.addEventListener('touchstart', (e) => {
 });
 
 // Initial call to update to set up the canvas and draw initial state (before game starts)
-update();
+requestAnimationFrame(update);
