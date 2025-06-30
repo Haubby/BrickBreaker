@@ -1,3 +1,4 @@
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const startScreen = document.getElementById('startScreen');
@@ -11,6 +12,7 @@ canvas.height = window.innerHeight;
 
 let gameOver = false;
 let gameStarted = false;
+let ballReleased = false;
 let score = 0;
 let lives = 3;
 
@@ -53,8 +55,9 @@ const ball = {
     y: canvas.height / 2,
     radius: 10,
     color: '#ff00ff',
-    dx: 6,
-    dy: -6
+    dx: 0,
+    dy: 0,
+    speed: 6 // Initial speed of the ball
 };
 
 const bricks = [];
@@ -64,15 +67,18 @@ const brickInfo = {
     padding: 10,
     offsetX: 30,
     offsetY: 50,
-    colors: ['#ff00ff', '#00ffff', '#ffff00']
+    colors: ['#ff00ff', '#00ffff', '#ffff00', '#ff0099', '#33cc33', '#ff6600', '#66ff66', '#ff33cc'],
+    dx: 5 // Increased speed for continuous movement
 };
 
 const brickColumnCount = Math.floor((canvas.width - 2 * brickInfo.offsetX) / (brickInfo.width + brickInfo.padding));
+const totalBrickFormationWidth = brickColumnCount * (brickInfo.width + brickInfo.padding);
+const brickRowCount = 5;
 
 for (let c = 0; c < brickColumnCount; c++) {
     bricks[c] = [];
-    for (let r = 0; r < 3; r++) {
-        bricks[c][r] = { x: 0, y: 0, status: 1 };
+    for (let r = 0; r < brickRowCount; r++) {
+        bricks[c][r] = { status: 1 };
     }
 }
 
@@ -132,24 +138,46 @@ function drawBall() {
 }
 
 function drawBricks() {
+    let allBricksBroken = true;
+    const totalBrickFormationWidth = brickColumnCount * (brickInfo.width + brickInfo.padding);
+
     for (let c = 0; c < brickColumnCount; c++) {
-        for (let r = 0; r < 3; r++) {
+        for (let r = 0; r < brickRowCount; r++) {
             if (bricks[c][r].status === 1) {
-                const brickX = (c * (brickInfo.width + brickInfo.padding)) + brickInfo.offsetX;
+                allBricksBroken = false;
+                let brickX = (c * (brickInfo.width + brickInfo.padding)) + brickInfo.offsetX;
                 const brickY = (r * (brickInfo.height + brickInfo.padding)) + brickInfo.offsetY;
-                bricks[c][r].x = brickX;
-                bricks[c][r].y = brickY;
                 const color = brickInfo.colors[r % brickInfo.colors.length];
+
+                // Draw the brick at its current position
                 ctx.beginPath();
                 ctx.rect(brickX, brickY, brickInfo.width, brickInfo.height);
                 ctx.fillStyle = color;
                 ctx.shadowColor = color;
-                ctx.shadowBlur = 20;
+                const pulse = Math.sin(brickAnimationTime / 200 + r) * 5;
+                ctx.shadowBlur = 10 + pulse;
                 ctx.fill();
                 ctx.closePath();
-                ctx.shadowBlur = 0; // Reset shadow
+                ctx.shadowBlur = 0;
+
+                // Draw duplicate brick for seamless looping
+                // Since dx is positive, bricks move right. Duplicate should appear on the left.
+                let duplicateBrickX = brickX - totalBrickFormationWidth;
+
+                ctx.beginPath();
+                ctx.rect(duplicateBrickX, brickY, brickInfo.width, brickInfo.height);
+                ctx.fillStyle = color;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 10 + pulse;
+                ctx.fill();
+                ctx.closePath();
+                ctx.shadowBlur = 0;
             }
         }
+    }
+    if (allBricksBroken) {
+        showGameOverScreen("YOU WIN!", score + 100);
+        gameOver = true;
     }
 }
 
@@ -187,26 +215,40 @@ function moveBall(speedMultiplier) {
     // Paddle collision
     if (
         ball.y + ball.radius > paddle.y &&
-        ball.x > paddle.x &&
-        ball.x < paddle.x + paddle.width
+        ball.y - ball.radius < paddle.y + paddle.height && // Check top and bottom of paddle
+        ball.x + ball.radius > paddle.x &&
+        ball.x - ball.radius < paddle.x + paddle.width
     ) {
-        ball.dy *= -1;
+        // Determine where the ball hit the paddle for varied bounce angle
+        const hitPoint = ball.x - (paddle.x + paddle.width / 2);
+        const normalizeHit = hitPoint / (paddle.width / 2); // -1 to 1
+        const bounceAngle = normalizeHit * (Math.PI / 3); // Max 60 degrees
+
+        ball.dx = ball.speed * Math.sin(bounceAngle);
+        ball.dy = -ball.speed * Math.cos(bounceAngle); // Always bounce up
+
         playSound(660, 0.1); // Paddle bounce sound
     }
 
     // Brick collision
     for (let c = 0; c < brickColumnCount; c++) {
-        for (let r = 0; r < 3; r++) {
+        for (let r = 0; r < brickRowCount; r++) {
             const b = bricks[c][r];
             if (b.status === 1) {
+                // Calculate current brick position based on its column, row, and the global offsetX
+                const currentBrickX = ((c * (brickInfo.width + brickInfo.padding)) + brickInfo.offsetX);
+                const normalizedBrickX = (currentBrickX % canvas.width + canvas.width) % canvas.width;
+                const currentBrickY = (r * (brickInfo.height + brickInfo.padding)) + brickInfo.offsetY;
+
+                // Check for collision with the current brick (considering ball radius)
                 if (
-                    ball.x > b.x &&
-                    ball.x < b.x + brickInfo.width &&
-                    ball.y > b.y &&
-                    ball.y < b.y + brickInfo.height
+                    ball.x + ball.radius > normalizedBrickX &&
+                    ball.x - ball.radius < normalizedBrickX + brickInfo.width &&
+                    ball.y + ball.radius > currentBrickY &&
+                    ball.y - ball.radius < currentBrickY + brickInfo.height
                 ) {
-                    ball.dy *= -1;
-                    b.status = 0;
+                    ball.dy *= -1; // Reverse ball direction
+                    b.status = 0; // Mark brick as broken
                     score += 10; // Add score for hitting brick
                     playSound(880, 0.05); // Brick hit sound
 
@@ -217,13 +259,14 @@ function moveBall(speedMultiplier) {
 
                     // Check for win
                     let allBricksBroken = true;
-                    for (let c = 0; c < brickColumnCount; c++) {
-                        for (let r = 0; r < 3; r++) {
-                            if (bricks[c][r].status === 1) {
+                    for (let col = 0; col < brickColumnCount; col++) {
+                        for (let row = 0; row < brickRowCount; row++) {
+                            if (bricks[col][row].status === 1) {
                                 allBricksBroken = false;
                                 break;
                             }
                         }
+                        if (!allBricksBroken) break;
                     }
 
                     if (allBricksBroken) {
@@ -248,10 +291,11 @@ function moveBall(speedMultiplier) {
             return;
         } else {
             // Reset ball position but keep playing
-            ball.x = canvas.width / 2;
-            ball.y = canvas.height / 2;
-            ball.dx = 6;
-            ball.dy = -6;
+            ballReleased = false;
+            ball.x = paddle.x + paddle.width / 2;
+            ball.y = paddle.y - ball.radius;
+            ball.dx = 0;
+            ball.dy = 0;
             // Reset paddle position
             paddle.x = canvas.width / 2 - 50;
         }
@@ -269,20 +313,17 @@ function resetGame() {
     gameOver = false;
     score = 0; // Reset score
     lives = 3; // Reset lives
+    ballReleased = false;
 
-    // Reset ball position and speed
-    ball.x = canvas.width / 2;
-    ball.y = canvas.height / 2;
-    ball.dx = 6;
-    ball.dy = -6;
-    
     // Reset paddle position
     paddle.x = canvas.width / 2 - 50;
     
     // Reset bricks
+    brickInfo.offsetX = 30;
     for (let c = 0; c < brickColumnCount; c++) {
-        for (let r = 0; r < 3; r++) {
-            bricks[c][r].status = 1;
+        bricks[c] = []; // Re-initialize inner array
+        for (let r = 0; r < brickRowCount; r++) {
+            bricks[c][r] = { status: 1 };
         }
     }
     
@@ -292,9 +333,14 @@ function resetGame() {
     // Hide game over screen and show canvas
     gameOverScreen.style.display = 'none';
     canvas.style.display = 'block';
+
+    // Set ball dx and dy to 0 so it doesn't move until released
+    ball.dx = 0;
+    ball.dy = 0;
 }
 
 let lastTime = 0;
+let brickAnimationTime = 0;
 // Game loop
 function update(timestamp = 0) {
     if (!lastTime) {
@@ -303,7 +349,7 @@ function update(timestamp = 0) {
     const deltaTime = timestamp - lastTime;
     lastTime = timestamp;
 
-    if (gameOver || !gameStarted) {
+    if (gameOver) {
         requestAnimationFrame(update);
         return;
     }
@@ -327,24 +373,41 @@ function update(timestamp = 0) {
         }
     });
 
-    moveBall(speedMultiplier);
+    if (gameStarted && !ballReleased) {
+        ball.x = paddle.x + paddle.width / 2;
+        ball.y = paddle.y - ball.radius;
+    } else if (gameStarted && ballReleased) {
+        moveBall(speedMultiplier);
+    }
+
+    brickAnimationTime += deltaTime;
+
+    // Update brickInfo.offsetX for continuous movement
+    brickInfo.offsetX += brickInfo.dx * speedMultiplier;
+    // Wrap offsetX around the total width of the brick formation
+    const totalBrickFormationWidth = brickColumnCount * (brickInfo.width + brickInfo.padding);
+    brickInfo.offsetX = (brickInfo.offsetX % totalBrickFormationWidth + totalBrickFormationWidth) % totalBrickFormationWidth;
 
     requestAnimationFrame(update);
 }
 
 // Function to start the game
 function startGame() {
-    gameStarted = true;
-    gameOver = false; // Ensure game is not over
-    score = 0; // Reset score
-    lives = 3; // Reset lives
+    if (!gameStarted) {
+        gameStarted = true;
+        ballReleased = false;
+        gameOver = false; // Ensure game is not over
+        score = 0; // Reset score
+        lives = 3; // Reset lives
 
-    startScreen.style.display = 'none';
-    canvas.style.display = 'block';
-    gameOverScreen.style.display = 'none'; // Hide game over screen if it was visible
+        resetGame(); // Reset game elements and start the loop
 
-    audioCtx.resume(); // Resume audio context on user interaction
-    resetGame(); // Reset game elements and start the loop
+        startScreen.style.display = 'none';
+        canvas.style.display = 'block';
+        gameOverScreen.style.display = 'none'; // Hide game over screen if it was visible
+
+        audioCtx.resume(); // Resume audio context on user interaction
+    }
 }
 
 // Initial setup: show start screen
@@ -353,8 +416,18 @@ canvas.style.display = 'none';
 gameOverScreen.style.display = 'none';
 
 // Event listeners
+canvas.addEventListener('click', () => {
+    if (gameStarted && !ballReleased) {
+        ballReleased = true;
+        ball.dx = ball.speed;
+        ball.dy = -ball.speed;
+    }
+});
 startButton.addEventListener('click', startGame);
-playAgainButton.addEventListener('click', startGame); // Play again button also starts a new game
+playAgainButton.addEventListener('click', () => {
+    gameStarted = false;
+    startGame();
+}); // Play again button also starts a new game
 
 // Mouse event handler
 document.addEventListener('mousemove', (e) => {

@@ -1,8 +1,15 @@
+@keyframes neon-glow {
+    0% { box-shadow: 0 0 5px #00ffea, 0 0 10px #00ffea, 0 0 15px #00ffea; }
+    50% { box-shadow: 0 0 10px #00ffea, 0 0 20px #00ffea, 0 0 30px #00ffea; }
+    100% { box-shadow: 0 0 5px #00ffea, 0 0 10px #00ffea, 0 0 15px #00ffea; }
+}
+
 body {
     margin: 0;
     overflow: hidden;
     background-color: #000;
     font-family: 'Press Start 2P', cursive;
+    animation: neon-glow 3s infinite alternate;
 }
 
 canvas {
